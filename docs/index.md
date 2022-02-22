@@ -8,7 +8,7 @@ Base the names of your infrastructure on the Wordle of the day! Powered by [Word
 terraform {
   required_providers {
     wordle = {
-      source  = "firebovine/mcbroken"
+      source  = "firebovine/wordle"
     }
   }
 }
