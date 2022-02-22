@@ -1,8 +1,7 @@
 terraform {
   required_providers {
     wordle = {
-      version = "0.1"
-      source  = "hashicorp.com/nwheeler-splunk/wordle"
+      source  = "firebovine/wordle"
     }
   }
 }
