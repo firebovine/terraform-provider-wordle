@@ -68,7 +68,7 @@ func dataSourceWordleRead(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	// always run
-	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
+	d.SetId(strconv.FormatInt(time.Now().Unix(), 10)) //nolint:gomnd
 
 	return diags
 }
@@ -82,15 +82,13 @@ func getIdxFromTime(ctx context.Context, date string, mainjs string) (result int
 	userMidnight := time.Date(userDate.Year(), userDate.Month(), userDate.Day(), 0, 0, 0, 0, time.Local)
 	var msInDay int64 = 86400000
 
-	wordleEpoch, err := getWordleEpoch(mainjs)
-	if err != nil {
-		return -1, err
-	}
+	wordleEpoch := getWordleEpoch(mainjs)
 
 	delta := userMidnight.UnixMilli() - wordleEpoch
-	var idx int = int(math.Round(float64(delta / msInDay)))
+	var idx = int(math.Round(float64(delta / msInDay)))
 
-	oot := fmt.Sprintf("userDate: %d\nuserMidnight: %d\nwordleEpoch: %d\nDelta: %d, idx: %d\n\n", userDate.UnixMilli(), userMidnight.UnixMilli(), wordleEpoch, delta, idx)
+	oot := fmt.Sprintf("userDate: %d\nuserMidnight: %d\nwordleEpoch: %d\nDelta: %d, idx: %d\n\n",
+		userDate.UnixMilli(), userMidnight.UnixMilli(), wordleEpoch, delta, idx)
 	tflog.Debug(ctx, oot)
 
 	return idx, nil
@@ -98,14 +96,14 @@ func getIdxFromTime(ctx context.Context, date string, mainjs string) (result int
 
 func getMainJS() (js string, err error) {
 	// get the main js file
-	url_base := "https://www.nytimes.com/games/wordle/"
-	url_index := url_base + "index.html"
-	res, err := http.Get(url_index)
+	urlBase := "https://www.nytimes.com/games/wordle/"
+	urlIndex := urlBase + "index.html"
+	res, err := http.Get(urlIndex)
 	if err != nil {
 		return "", err
 	}
 	defer res.Body.Close()
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
@@ -117,16 +115,16 @@ func getMainJS() (js string, err error) {
 	doc.Find("script").Each(func(i int, s *goquery.Selection) {
 		src, _ := s.Attr("src")
 		if strings.Contains(src, "main") {
-			mainjs = url_base + src
+			mainjs = urlBase + src
 		}
 	})
 
-	res, err = http.Get(mainjs)
+	res, err = http.Get(mainjs) //nolint:gosec
 	if err != nil {
 		return "", err
 	}
 	defer res.Body.Close()
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
@@ -134,7 +132,7 @@ func getMainJS() (js string, err error) {
 	return string(contents), nil
 }
 
-func getWordleEpoch(mainjs string) (worldeEpoch int64, err error) {
+func getWordleEpoch(mainjs string) (worldeEpoch int64) {
 	// calebwhy
 	r := regexp.MustCompile(`Date\(([0-9]{4}),([0-9]{1,2}),([0-9]{1,2}),[0-9,]+\)`)
 	epoch := r.FindStringSubmatch(mainjs)
@@ -144,7 +142,7 @@ func getWordleEpoch(mainjs string) (worldeEpoch int64, err error) {
 	month := time.Month(_month)
 	day, _ := strconv.Atoi(epoch[3])
 	wordleEpoch := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
-	return wordleEpoch.UnixMilli(), nil
+	return wordleEpoch.UnixMilli()
 }
 
 func getWordleWord(mainjs string, idx int) (word string, err error) {
@@ -153,7 +151,7 @@ func getWordleWord(mainjs string, idx int) (word string, err error) {
 	var result string
 	matches := r.FindAllStringSubmatch(mainjs, -1)
 	for _, match := range matches {
-		value := string(match[1])
+		value := match[1]
 		// a token value, get it?
 		if strings.Contains(value, "token") {
 			words := strings.Split(value, ",")
@@ -162,5 +160,5 @@ func getWordleWord(mainjs string, idx int) (word string, err error) {
 			return result, nil
 		}
 	}
-	return "", fmt.Errorf("Could not find a wordle word")
+	return "", fmt.Errorf("could not find a wordle word")
 }
